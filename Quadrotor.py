@@ -13,25 +13,25 @@ class Quadrotor:
 
         # The paths
         self.path = [np.append(self.pos, self.ori)]
-
+        self.vel = [np.append(self.dpos, self.dori)]
         # The constant parameters of quadrotor
-        self.mq = 1          # Mass of the quadrotor [kg]
-        self.g = 9.8         # Gravity [m/s^2]
-        self.Ix = 4e-3       # Moment of inertia about Bx axis [kg.m^2]
-        self.Iy = 4e-3       # Moment of inertia about By axis [kg.m^2]
-        self.Iz = 8.4e-3     # Moment of inertia about Bz axis [kg.m^2]
-        self.la = 0.2        # Quadrotor arm length [m]
-        self.b = 29e-6       # Thrust coefficient [N.s^2]
-        self.d = 1.1e-6      # Drag coefficient [N.m.s^2]
+        self.mq =0.302              # Mass of the quadrotor [kg]
+        self.g = 9.8                # Gravity [m/s^2]
+        self.Ix = 3.9195e-4         # Moment of inertia about Bx axis [kg.m^2]
+        self.Iy = 4.0515e-4         # Moment of inertia about By axis [kg.m^2]
+        self.Iz = 6.3890e-3         # Moment of inertia about Bz axis [kg.m^2]
+        self.la = 0.0775            # Quadrotor arm length [m]
+        self.b = 2.9409e-7          # Thrust coefficient [N.s^2]
+        self.d = 1.1e-6             # Drag coefficient [N.m.s^2]
 
         # The constraints of the quadrotor
         self.max_z = 0
         self.max_phi = 1.0; self.min_phi = -self.max_phi
         self.max_the = 1.0; self.min_the = -self.max_the
 
-        self.max_dx = 20.0; self.min_dx = -self.max_dx
-        self.max_dy = 20.0; self.min_dy = -self.max_dy
-        self.max_dz = 20.0; self.min_dz = -self.max_dz
+        self.max_dx = 15.0; self.min_dx = -self.max_dx
+        self.max_dy = 15.0; self.min_dy = -self.max_dy
+        self.max_dz = 15.0; self.min_dz = -self.max_dz
         self.max_dphi = math.pi/2; self.min_dphi = -self.max_dphi
         self.max_dthe = math.pi/2; self.min_dthe = -self.max_dthe
         self.max_dpsi = math.pi/2; self.min_dpsi = -self.max_dpsi
@@ -93,6 +93,8 @@ class Quadrotor:
         self.dori = self.dori + ddori*dt
         self.correctDotState()
 
+        self.vel.append(np.append(self.dpos, self.dori))
+        
         self.pos = self.pos + self.dpos*dt
         self.ori = self.ori + self.dori*dt
         self.correctState()

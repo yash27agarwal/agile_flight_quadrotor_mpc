@@ -12,6 +12,7 @@ class Trajectory:
         self.sim_time = sim_time
         self.dt = dt
         self.ref = self.desiredTrajectory()
+        # self.ref = self.desiredTrajectory_eight()
 
         self.x_ref = np.array(self.ref)[:,0]
         self.y_ref = np.array(self.ref)[:,1]
@@ -24,9 +25,20 @@ class Trajectory:
             t = i*self.dt
             x = 5*math.sin(2*math.pi*t/10)
             y = 5*math.cos(2*math.pi*t/10)
-            z = -0.5*t
+            z = -2
             yaw = 2*math.pi*t/10
             ref.append([x,y,z,yaw])
+        return ref
+    
+    def desiredTrajectory_eight(self):
+        ref = []
+        for i in range(int(self.sim_time / self.dt)):
+            t = i * self.dt
+            x = 5 * math.sin(2 * math.pi * t / 10)  # Same periodic x motion
+            y = 5 * math.sin(4 * math.pi * t / 10)  # Modified y motion for figure-8
+            z = -2  # Linear motion in z
+            yaw = 2 * math.pi * t / 10  # Smooth yaw change
+            ref.append([x, y, z, yaw])
         return ref
         
     def desired_altitude(self, quad, idx, N_):
@@ -180,6 +192,7 @@ if __name__ == "__main__":
         iner += 1
     
     print(np.array(quad.path))
+    quad_vel = np.array(quad.vel)
 
     # Plot Drone
     plot = Plotting("Quadrotor")
@@ -211,5 +224,47 @@ if __name__ == "__main__":
     plt.title("The tau psi")
     plt.xlabel("Time [s]")
     plt.ylabel("Value [N.m]")
+
+    # plt.show()
+
+    # velocity profile
+    plt.figure()
+    plt.subplot(221)
+    plt.plot(his_time, quad_vel[1:, 0])
+    plt.title("vel_x")
+    plt.xlabel("Time [s]")
+    plt.ylabel("Value [m/s]")
+
+    plt.subplot(222)
+    plt.plot(his_time, quad_vel[1:, 1])
+    plt.title("vel_y")
+    plt.xlabel("Time [s]")
+    plt.ylabel("Value [m/s]")
+
+    plt.subplot(223)
+    plt.plot(his_time, quad_vel[1:, 2])
+    plt.title("vel_z")
+    plt.xlabel("Time [s]")
+    plt.ylabel("Value [m/s]")
+
+    plt.figure()
+    plt.subplot(221)
+    plt.plot(his_time, quad_vel[1:, 3])
+    plt.title("dphi")
+    plt.xlabel("Time [s]")
+    plt.ylabel("Value [rad/s]")
+
+    plt.subplot(222)
+    plt.plot(his_time, quad_vel[1:, 4])
+    plt.title("dthe")
+    plt.xlabel("Time [s]")
+    plt.ylabel("Value [rad/s]")
+
+    plt.subplot(223)
+    plt.plot(his_time, quad_vel[1:, 5])
+    plt.title("dpsi")
+    plt.xlabel("Time [s]")
+    plt.ylabel("Value [rad/s]")
+
 
     plt.show()
