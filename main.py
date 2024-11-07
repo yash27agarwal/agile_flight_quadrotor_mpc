@@ -149,55 +149,12 @@ class Trajectory:
 
 # exit()
 
-if __name__ == "__main__":
-    quad = Quadrotor()
-
-    dt = 0.02
-    N = 50
-    sim_time = 10.0
-    iner = 0
-
-    traj = Trajectory(sim_time, dt)
-
-    al = AltitudeMPC(quad, T=dt, N=N)
-    po = PositionMPC(quad, T=dt, N=N)
-    at = AttitudeMPC(quad, T=dt, N=N)
-
-    his_thrust = []; his_tau_phi = []; his_tau_the = []; his_tau_psi = []
-    his_time = []
-
-    while iner - sim_time/dt < 0.0:
-        # print(iner)
-        # Solve altitude -> thrust
-        next_al_trajectories, next_al_controls = traj.desired_altitude(quad, iner, N)
-        thrusts = al.solve(next_al_trajectories, next_al_controls)
-
-        # Solve position -> phid, thed
-        next_po_trajectories, next_po_controls = traj.desired_position(quad, iner, N, thrusts)
-        phids, theds = po.solve(next_po_trajectories, next_po_controls, thrusts)
-
-        # Solve attitude -> tau_phi, tau_the, tau_psi
-        next_at_trajectories, next_at_controls = traj.desired_attitude(quad, iner, N, phids, theds)
-        tau_phis, tau_thes, tau_psis = at.solve(next_at_trajectories, next_at_controls)
-
-        quad.updateConfiguration(thrusts[0], tau_phis[0], tau_thes[0], tau_psis[0], dt)
-        
-        # Store values
-        his_thrust.append(thrusts[0])
-        his_tau_phi.append(tau_phis[0])
-        his_tau_the.append(tau_thes[0])
-        his_tau_psi.append(tau_psis[0])
-        his_time.append(iner*dt)
-
-        iner += 1
+def plot(his_time, his_thrust, his_tau_phi, his_tau_the, his_tau_psi, quad_vel, quad_path, ref_path):
     
-    print(np.array(quad.path))
-    quad_vel = np.array(quad.vel)
-
     # Plot Drone
     plot = Plotting("Quadrotor")
-    plot.plot_path(quad.path)
-    plot.plot_path(traj.ref)
+    plot.plot_path(quad_path)
+    plot.plot_path(ref_path)
 
     # Plot control
     plt.figure()
@@ -225,9 +182,7 @@ if __name__ == "__main__":
     plt.xlabel("Time [s]")
     plt.ylabel("Value [N.m]")
 
-    # plt.show()
-
-    # velocity profile
+    # Velocity profile
     plt.figure()
     plt.subplot(221)
     plt.plot(his_time, quad_vel[1:, 0])
@@ -266,5 +221,58 @@ if __name__ == "__main__":
     plt.xlabel("Time [s]")
     plt.ylabel("Value [rad/s]")
 
-
     plt.show()
+
+def main():
+    quad = Quadrotor()
+
+    dt = 0.02
+    N = 50
+    sim_time = 10.0
+    iner = 0
+
+    traj = Trajectory(sim_time, dt)
+
+    al = AltitudeMPC(quad, T=dt, N=N)
+    po = PositionMPC(quad, T=dt, N=N)
+    at = AttitudeMPC(quad, T=dt, N=N)
+
+    his_thrust = []; his_tau_phi = []; his_tau_the = []; his_tau_psi = []
+    his_time = []
+
+    while iner - sim_time/dt < 0.0:
+        # Solve altitude -> thrust
+        next_al_trajectories, next_al_controls = traj.desired_altitude(quad, iner, N)
+        thrusts = al.solve(next_al_trajectories, next_al_controls)
+
+        # Solve position -> phid, thed
+        next_po_trajectories, next_po_controls = traj.desired_position(quad, iner, N, thrusts)
+        phids, theds = po.solve(next_po_trajectories, next_po_controls, thrusts)
+
+        # Solve attitude -> tau_phi, tau_the, tau_psi
+        next_at_trajectories, next_at_controls = traj.desired_attitude(quad, iner, N, phids, theds)
+        tau_phis, tau_thes, tau_psis = at.solve(next_at_trajectories, next_at_controls)
+
+        quad.updateConfiguration(thrusts[0], tau_phis[0], tau_thes[0], tau_psis[0], dt)
+        
+        # Store values
+        his_thrust.append(thrusts[0])
+        his_tau_phi.append(tau_phis[0])
+        his_tau_the.append(tau_thes[0])
+        his_tau_psi.append(tau_psis[0])
+        his_time.append(iner*dt)
+
+        iner += 1
+    
+    # print(np.array(quad.path))
+    quad_vel = np.array(quad.vel)
+
+    # plot all the states
+    plot(his_time, his_thrust, his_tau_phi, his_tau_the, his_tau_psi, quad_vel, quad.path, traj.ref)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as e:
+        print(f"Cannot run main function. An error occurred: {e}")
