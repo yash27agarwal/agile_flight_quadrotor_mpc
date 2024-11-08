@@ -21,6 +21,13 @@ Implement 3 MPC controller without relation
 ![tracking](images/quad_mpc_tracking.png)
 ![control](images/quad_mpc_control.png)
 
+
+# Usage
+Run the following command:
+```bash
+python3 -m scripts.main
+```
+
 ## Todo
 
 * Implement LNMPC controller for stable behavior
