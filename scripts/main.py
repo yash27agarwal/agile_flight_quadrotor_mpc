@@ -1,11 +1,9 @@
 import numpy as np
 import math
-import time
-import matplotlib.pyplot as plt
-
-from Quadrotor import Quadrotor
-from Plotting import Plotting
-from MPCController import AltitudeMPC, AttitudeMPC, PositionMPC
+from utils.plot import Plot
+from dynamics.Quadrotor import Quadrotor
+from MPC.MPCController import AltitudeMPC, AttitudeMPC, PositionMPC
+from motor_model.motor_model import MotorModel
 
 class Trajectory:
     def __init__(self, sim_time=10.0, dt = 0.02):
@@ -54,7 +52,7 @@ class Trajectory:
         
         dz_ref_ = np.diff(z_ref_)
         dz_ref_ = np.concatenate((quad.dpos[2], dz_ref_), axis=None)
-
+        
         ddz_ref_ = np.diff(dz_ref_)
         ddz_ref_ = np.concatenate((ddz_ref_[0], ddz_ref_), axis=None)
 
@@ -92,8 +90,8 @@ class Trajectory:
         ddy_ref_ = np.diff(dy_ref_)
         ddy_ref_ = np.concatenate((ddy_ref_[0], ddy_ref_), axis=None)
 
-        the_ref_ = np.arcsin(ddx_ref_*quad.mq/thrust)
-        phi_ref_ = -np.arcsin(ddy_ref_*quad.mq/thrust)
+        the_ref_ = np.arcsin(np.clip(ddx_ref_*quad.mq/thrust, -1, 1))
+        phi_ref_ = -np.arcsin(np.clip(ddy_ref_*quad.mq/thrust, -1, 1))
 
         x_ = np.array([x_ref_, y_ref_, dx_ref_, dy_ref_]).T
         x_ = np.concatenate((np.array([[quad.pos[0], quad.pos[1], quad.dpos[0], quad.dpos[1]]]), x_), axis=0)
@@ -143,15 +141,10 @@ class Trajectory:
         # print(u_)
         return x_, u_
 
-# quad = Quadrotor()
-# traj = Trajectory()
-# traj.desired_altitude(quad, 495, np.array([1,2]), 30)
-
-# exit()
-
-if __name__ == "__main__":
+def main():
     quad = Quadrotor()
-
+    motor_model = MotorModel()
+    
     dt = 0.02
     N = 50
     sim_time = 10.0
@@ -165,9 +158,10 @@ if __name__ == "__main__":
 
     his_thrust = []; his_tau_phi = []; his_tau_the = []; his_tau_psi = []
     his_time = []
+    his_motor_speeds = np.zeros((4,1))
+    his_forces_and_torques = np.zeros((4,1))
 
     while iner - sim_time/dt < 0.0:
-        # print(iner)
         # Solve altitude -> thrust
         next_al_trajectories, next_al_controls = traj.desired_altitude(quad, iner, N)
         thrusts = al.solve(next_al_trajectories, next_al_controls)
@@ -180,91 +174,46 @@ if __name__ == "__main__":
         next_at_trajectories, next_at_controls = traj.desired_attitude(quad, iner, N, phids, theds)
         tau_phis, tau_thes, tau_psis = at.solve(next_at_trajectories, next_at_controls)
 
-        quad.updateConfiguration(thrusts[0], tau_phis[0], tau_thes[0], tau_psis[0], dt)
+        # motor speeds 
+        motor_speed = motor_model.calculate_motor_speed(thrust=thrusts[0], 
+                                                         torque_roll=tau_phis[0],
+                                                         torque_pitch=tau_thes[0],
+                                                         torque_yaw=tau_psis[0])
         
+        forces_and_torques = motor_model.calculate_forces_n_torques(motor_speed)
+        
+        # without propeller model
+        # quad.updateConfiguration(thrusts[0], 
+        #                          tau_phis[0], 
+        #                          tau_thes[0], 
+        #                          tau_psis[0], dt)
+        
+        # with propeller model
+        quad.updateConfiguration(float(forces_and_torques[0]), 
+                                 float(forces_and_torques[1]), 
+                                 float(forces_and_torques[2]), 
+                                 float(forces_and_torques[3]), dt)
+    
         # Store values
         his_thrust.append(thrusts[0])
         his_tau_phi.append(tau_phis[0])
         his_tau_the.append(tau_thes[0])
         his_tau_psi.append(tau_psis[0])
         his_time.append(iner*dt)
-
+        
+        his_motor_speeds = np.append(his_motor_speeds, motor_speed, axis = 1)
+        his_forces_and_torques = np.append(his_forces_and_torques, forces_and_torques, axis=1)
         iner += 1
-    
-    print(np.array(quad.path))
+    print(his_motor_speeds.shape)
     quad_vel = np.array(quad.vel)
 
-    # Plot Drone
-    plot = Plotting("Quadrotor")
-    plot.plot_path(quad.path)
-    plot.plot_path(traj.ref)
-
-    # Plot control
-    plt.figure()
-    plt.subplot(221)
-    plt.plot(his_time, his_thrust)
-    plt.title("The total thrust")
-    plt.xlabel("Time [s]")
-    plt.ylabel("Value [N]")
-
-    plt.subplot(222)
-    plt.plot(his_time, his_tau_phi)
-    plt.title("The tau phi")
-    plt.xlabel("Time [s]")
-    plt.ylabel("Value [N.m]")
-
-    plt.subplot(223)
-    plt.plot(his_time, his_tau_the)
-    plt.title("The tau theta")
-    plt.xlabel("Time [s]")
-    plt.ylabel("Value [N.m]")
-
-    plt.subplot(224)
-    plt.plot(his_time, his_tau_psi)
-    plt.title("The tau psi")
-    plt.xlabel("Time [s]")
-    plt.ylabel("Value [N.m]")
-
-    # plt.show()
-
-    # velocity profile
-    plt.figure()
-    plt.subplot(221)
-    plt.plot(his_time, quad_vel[1:, 0])
-    plt.title("vel_x")
-    plt.xlabel("Time [s]")
-    plt.ylabel("Value [m/s]")
-
-    plt.subplot(222)
-    plt.plot(his_time, quad_vel[1:, 1])
-    plt.title("vel_y")
-    plt.xlabel("Time [s]")
-    plt.ylabel("Value [m/s]")
-
-    plt.subplot(223)
-    plt.plot(his_time, quad_vel[1:, 2])
-    plt.title("vel_z")
-    plt.xlabel("Time [s]")
-    plt.ylabel("Value [m/s]")
-
-    plt.figure()
-    plt.subplot(221)
-    plt.plot(his_time, quad_vel[1:, 3])
-    plt.title("dphi")
-    plt.xlabel("Time [s]")
-    plt.ylabel("Value [rad/s]")
-
-    plt.subplot(222)
-    plt.plot(his_time, quad_vel[1:, 4])
-    plt.title("dthe")
-    plt.xlabel("Time [s]")
-    plt.ylabel("Value [rad/s]")
-
-    plt.subplot(223)
-    plt.plot(his_time, quad_vel[1:, 5])
-    plt.title("dpsi")
-    plt.xlabel("Time [s]")
-    plt.ylabel("Value [rad/s]")
+    # plot all the states
+    Plot.plot(his_time, his_thrust, his_tau_phi, his_tau_the, his_tau_psi, 
+         quad_vel, quad.path, traj.ref, his_motor_speeds, his_forces_and_torques)
 
 
-    plt.show()
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as e:
+        print(f"Cannot run main function. An error occurred: {e}")

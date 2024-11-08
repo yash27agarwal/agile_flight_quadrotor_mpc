@@ -1,10 +1,6 @@
 import casadi as ca
 import numpy as np
 import math
-# import time
-# import matplotlib.pyplot as plt
-
-# from Quadrotor import Quadrotor
 
 def shift(u, x_n):
     u_end = np.concatenate((u[1:], u[-1:]))
@@ -69,10 +65,10 @@ class AltitudeMPC:
 
         self.opti.subject_to(self.opti.bounded(self.quad.min_thrust, thrust, self.quad.max_thrust))
 
-        opts_setting = {'ipopt.max_iter':2000,
+        opts_setting = {'ipopt.max_iter':5000,
                         'ipopt.print_level':0,
                         'print_time':0,
-                        'ipopt.acceptable_tol':1e-8,
+                        'ipopt.acceptable_tol':1e-6,
                         'ipopt.acceptable_obj_change_tol':1e-6}
 
         self.opti.solver('ipopt', opts_setting)
@@ -160,10 +156,10 @@ class PositionMPC:
         self.opti.subject_to(self.opti.bounded(self.quad.min_phi, phid, self.quad.max_phi))
         self.opti.subject_to(self.opti.bounded(self.quad.min_the, thed, self.quad.max_the))
 
-        opts_setting = {'ipopt.max_iter':2000,
+        opts_setting = {'ipopt.max_iter':5000,
                         'ipopt.print_level':0,
                         'print_time':0,
-                        'ipopt.acceptable_tol':1e-8,
+                        'ipopt.acceptable_tol':1e-6,
                         'ipopt.acceptable_obj_change_tol':1e-6}
 
         self.opti.solver('ipopt', opts_setting)
@@ -260,10 +256,10 @@ class AttitudeMPC:
         self.opti.subject_to(self.opti.bounded(self.quad.min_tau_the, tau_the, self.quad.max_tau_the))
         self.opti.subject_to(self.opti.bounded(self.quad.min_tau_psi, tau_psi, self.quad.max_tau_psi))
 
-        opts_setting = {'ipopt.max_iter':2000,
+        opts_setting = {'ipopt.max_iter':5000,
                         'ipopt.print_level':0,
                         'print_time':0,
-                        'ipopt.acceptable_tol':1e-8,
+                        'ipopt.acceptable_tol':1e-6,
                         'ipopt.acceptable_obj_change_tol':1e-6}
 
         self.opti.solver('ipopt', opts_setting)

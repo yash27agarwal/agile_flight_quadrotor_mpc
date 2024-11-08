@@ -22,24 +22,24 @@ class Quadrotor:
         self.Iz = 6.3890e-3         # Moment of inertia about Bz axis [kg.m^2]
         self.la = 0.0775            # Quadrotor arm length [m]
         self.b = 2.9409e-7          # Thrust coefficient [N.s^2]
-        self.d = 1.1e-6             # Drag coefficient [N.m.s^2]
+        self.d = 2.9265e-7*0.0162   # Drag coefficient [N.m.s^2]
 
         # The constraints of the quadrotor
         self.max_z = 0
-        self.max_phi = 1.0; self.min_phi = -self.max_phi
-        self.max_the = 1.0; self.min_the = -self.max_the
+        self.max_phi = 1.57; self.min_phi = -self.max_phi
+        self.max_the = 1.57; self.min_the = -self.max_the
 
-        self.max_dx = 15.0; self.min_dx = -self.max_dx
-        self.max_dy = 15.0; self.min_dy = -self.max_dy
-        self.max_dz = 15.0; self.min_dz = -self.max_dz
+        self.max_dx = 10.0; self.min_dx = -self.max_dx
+        self.max_dy = 10.0; self.min_dy = -self.max_dy
+        self.max_dz = 10.0; self.min_dz = -self.max_dz
         self.max_dphi = math.pi/2; self.min_dphi = -self.max_dphi
         self.max_dthe = math.pi/2; self.min_dthe = -self.max_dthe
         self.max_dpsi = math.pi/2; self.min_dpsi = -self.max_dpsi
 
-        self.max_thrust = 15.0; self.min_thrust = 0.0
-        self.max_tau_phi = 10.0; self.min_tau_phi = -self.max_tau_phi
-        self.max_tau_the = 10.0; self.min_tau_the = -self.max_tau_the
-        self.max_tau_psi = 10.0; self.min_tau_psi = -self.max_tau_psi
+        self.max_thrust = 10.0; self.min_thrust = 0.0
+        self.max_tau_phi = 1.0; self.min_tau_phi = -self.max_tau_phi
+        self.max_tau_the = 1.0; self.min_tau_the = -self.max_tau_the
+        self.max_tau_psi = 1.0; self.min_tau_psi = -self.max_tau_psi
 
     def correctControl(self, thrust, tau_phi, tau_the, tau_psi):
         thrust = min(max(thrust, self.min_thrust), self.max_thrust)
@@ -85,7 +85,7 @@ class Quadrotor:
 
         ddphi = (dthe*dpsi*(self.Iy - self.Iz) + tau_phi*self.la)/self.Ix
         ddthe = (dphi*dpsi*(self.Iz - self.Ix) + tau_the*self.la)/self.Iy
-        ddpsi = (dphi*dthe*(self.Iz - self.Iy) + tau_psi)/self.Iz
+        ddpsi = (dphi*dthe*(self.Ix - self.Iy) + tau_psi)/self.Iz
         ddori = np.array([ddphi, ddthe, ddpsi])
 
         # Update the quadrotor states
@@ -102,11 +102,12 @@ class Quadrotor:
         # Add current configuration to paths
         self.path.append(np.append(self.pos, self.ori))
 
+
     def updateConfigurationViaSpeed(self, o1, o2, o3, o4, dt):
         # Compute the control vector through angular speed
-        thrust = self.b*(o1 + o2 + o3 + o4)
-        tau_phi = self.b*(-o2 + o4)
-        tau_the = self.b*(o1 - o3)
-        tau_psi = self.d*(-o1 + o2 - o3 + o4)
-
+        thrust = self.b * (o1**2 + o2**2 + o3**2 + o4**2)
+        tau_phi = self.b * (-o2**2 + o4**2)
+        tau_the = self.b * (o1**2 - o3**2)
+        tau_psi = self.d * (o1**2 - o2**2 + o3**2 - o4**2)
         self.updateConfiguration(thrust, tau_phi, tau_the, tau_psi, dt)
+        return thrust, tau_phi, tau_the, tau_psi
