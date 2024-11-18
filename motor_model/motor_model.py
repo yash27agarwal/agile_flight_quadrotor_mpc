@@ -1,5 +1,11 @@
 import numpy as np
 import warnings
+import pickle
+from pathlib import Path
+import os
+from sklearn.gaussian_process import GaussianProcessRegressor
+
+base_path = Path(__file__).parent.parent
 
 class MotorModel:
     def __init__(self, motor_constant: float = 2.9265e-7, 
@@ -12,6 +18,16 @@ class MotorModel:
                                            [arm_length*thrust_coeff, 0, -arm_length*thrust_coeff, 0],
                                            [torque_coeff, -torque_coeff, torque_coeff, -torque_coeff]])
         self.inv_allocation_matrix = np.linalg.inv(self.allocation_matrix)
+        print("Loaded control allocation")
+        
+        saved_model_path = os.path.join(base_path, 'saved')
+        with open(os.path.join(saved_model_path, 'model_thrust.pkl'), 'rb') as f:
+            self.model_thrust: GaussianProcessRegressor = pickle.load(f)
+        
+        with open(os.path.join(saved_model_path, 'model_torque.pkl'), 'rb') as f:
+            self.model_torque: GaussianProcessRegressor = pickle.load(f)
+
+        print(f"Loaded thrust and torque models from {saved_model_path}")
 
     def calculate_motor_speed(self, thrust, torque_roll, torque_pitch, torque_yaw):
         U = np.array([thrust, torque_roll, torque_pitch, torque_yaw]).reshape(4, 1)
@@ -26,4 +42,6 @@ class MotorModel:
     
     def calculate_forces_n_torques(self, motor_speeds):
         return self.allocation_matrix @ motor_speeds**2
-        
+    
+    def calculate_forces_n_torques_model(self, motor_speeds, AoA: float, curr_velocity: float): 
+        pass
