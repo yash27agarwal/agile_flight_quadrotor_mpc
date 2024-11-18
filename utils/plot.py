@@ -170,7 +170,41 @@ class Plot:
         plt.ylabel("Value [N.m]")
         plt.grid(True)
         plt.tight_layout()
-        
+
+        quad_path = np.array(quad_path)
+        ref_path = np.array(ref_path)
+        error_x = quad_path[1:, 0] - ref_path[:, 0]
+        error_y = quad_path[1:, 1] - ref_path[:, 1]
+        error_z = quad_path[1:, 2] - ref_path[:, 2]
+
+        plt.figure()
+        plt.suptitle("Position Error")
+        plt.tight_layout()
+        plt.grid(True)
+        plt.subplot(221)
+        plt.plot(his_time, error_x)
+        plt.title("x error")
+        plt.xlabel("Time [s]")
+        plt.ylabel("Value [m]")
+        plt.grid(True)
+        plt.tight_layout()
+
+        plt.subplot(222)
+        plt.plot(his_time, error_y)
+        plt.title("y error")
+        plt.xlabel("Time [s]")
+        plt.ylabel("Value [m]")
+        plt.grid(True)
+        plt.tight_layout()
+
+        plt.subplot(223)
+        plt.plot(his_time, error_z)
+        plt.title("z error")
+        plt.xlabel("Time [s]")
+        plt.ylabel("Value [m]")
+        plt.grid(True)
+        plt.tight_layout()
+
         plt.show()
 
  
